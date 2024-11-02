@@ -117,6 +117,18 @@ const NavBar = ({ setToken }) => {
                 Orders
               </NavLink>
             </li>
+            <li>
+              <NavLink
+                to="/newsletter"
+                className={({ isActive }) =>
+                  `flex items-center px-4 py-2 text-sm ${
+                    isActive ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-50'
+                  }`
+                }
+              >
+                <span className="ml-3">Newsletter</span>
+              </NavLink>
+            </li>
           </ul>
         </div>
       </div>

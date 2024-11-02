@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import connectCloudinary from "./config/cloudinary.js";
 import userRoute from "./routes/userRoute.js";
 import productRoute from "./routes/productRoute.js";
+import newsletterRoute from "./routes/newslettersRoute.js";
 dotenv.config();
 connectDB();
 connectCloudinary();
@@ -29,8 +30,8 @@ app.get("/", (req, res) => {
 app.use("/api/user", userRoute);
 // product route
 app.use("/api/product", productRoute);
-
-
+// newsletter route
+app.use("/api/newsletter", newsletterRoute);
 
 // server running
 app.listen(process.env.PORT, () => {

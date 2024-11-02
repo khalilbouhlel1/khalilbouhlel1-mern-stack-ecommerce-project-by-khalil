@@ -23,9 +23,7 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       window.location.href = '/';
     }
-    return Promise.reject(error instanceof Error ? error : new Error(
-      error.response?.data?.message || error.message || 'Unknown error occurred'
-    ));
+    return Promise.reject(error);
   }
 );
 

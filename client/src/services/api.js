@@ -6,16 +6,24 @@ const api = axios.create({
 
 // Request interceptor
 api.interceptors.request.use((config) => {
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+    const token = localStorage.getItem('userToken');
+    if (token) {
+      config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    }
+    return config;
+  }, (error) => {
+    return Promise.reject(error);
+  });
 
 // Response interceptor
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    return Promise.reject(error.response?.data?.message || 'An error occurred');
+    if (error.response?.status === 401) {
+      localStorage.removeItem('userToken');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
   }
 );
 
@@ -26,6 +34,17 @@ export const productService = {
       return response.data;
     } catch (error) {
       throw new Error(error.message || 'Failed to fetch products');
+    }
+  }
+};
+
+export const newsletterService = {
+  subscribe: async (email) => {
+    try {
+      const response = await api.post('/api/newsletter/subscribe', { email });
+      return response.data;
+    } catch (error) {
+      throw error;
     }
   }
 };

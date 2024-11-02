@@ -193,7 +193,7 @@ const UsersList = () => {
         </div>
 
         <div className="sm:hidden space-y-4">
-          {filteredUsers.map(renderTableRow)}
+          {filteredUsers.map(user => renderTableRow(user))}
         </div>
 
         {filteredUsers.length === 0 && (

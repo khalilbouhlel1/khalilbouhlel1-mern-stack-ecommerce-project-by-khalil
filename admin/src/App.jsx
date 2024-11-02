@@ -9,6 +9,7 @@ import Login from './pages/login';
 import UpdateProduct from './pages/updateProduct';
 import UsersList from './pages/usersList';
 import UpdateUser from './pages/updateUser';
+import Newsletter from './pages/Newsletter';
 import api from './services/api';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -26,15 +27,13 @@ const App = () => {
       }
 
       try {
-        const response = await api.get('/api/user/verify-admin', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const response = await api.get('/api/user/verify-admin');
 
         if (!response.data.success) {
           localStorage.removeItem('token');
           setToken(null);
+        } else {
+          localStorage.setItem('token', token);
         }
       } catch (error) {
         console.error('Token verification error:', error);
@@ -129,6 +128,7 @@ const App = () => {
                 <Route path="/update-product/:id" element={<UpdateProduct />} />
                 <Route path="/users-list" element={<UsersList />} />
                 <Route path="/update-user/:id" element={<UpdateUser />} />
+                <Route path="/newsletter" element={<Newsletter />} />
               </Routes>
             </main>
           </>

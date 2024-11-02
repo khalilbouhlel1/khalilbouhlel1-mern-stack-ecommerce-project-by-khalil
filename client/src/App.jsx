@@ -11,26 +11,46 @@ import Cart from './pages/Cart'
 import { ShopProvider } from './context/ShopContext';
 import { AppError, handleApiError } from './utils/errorHandler';
 import ErrorBoundary from './components/ErrorBoundary'
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { AuthProvider } from './context/AuthContext';
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Profile from './pages/Profile'
+import ProtectedRoute from './components/ProtectedRoute'
 const App = () => {
   return (
-    <ShopProvider>
-      <ErrorBoundary>
-        <div className='min-h-screen'>
-          <Navbar />
-          <main className='pt-16'>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/collection" element={<Collection />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/product/:id" element={<Product />} />
-            <Route path="/cart" element={<Cart />} />
-          </Routes>
-          <Footer />
-          </main>
-        </div>
-      </ErrorBoundary>
-    </ShopProvider>
+    <AuthProvider>
+      <ShopProvider>
+        <ErrorBoundary>
+          <div className='min-h-screen'>
+            <Navbar />
+            <main className='pt-16'>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/collection" element={<Collection />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/product/:id" element={<Product />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  } 
+                />
+              </Routes>
+              <Footer />
+            </main>
+            <ToastContainer position="bottom-right" />
+          </div>
+        </ErrorBoundary>
+      </ShopProvider>
+    </AuthProvider>
   )
 }
 

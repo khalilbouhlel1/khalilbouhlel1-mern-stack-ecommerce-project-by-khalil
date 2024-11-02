@@ -2,48 +2,36 @@ import jwt from "jsonwebtoken";
 
 const adminAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "No token provided or invalid format",
+    const authHeader = req.header('Authorization');
+    console.log('Auth header:', authHeader);
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No authentication token, access denied' 
       });
     }
 
-    const token = authHeader.replace("Bearer ", "").trim();
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Extracted token:', token);
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Decoded token:', decoded);
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "No token provided",
+    if (!decoded.isAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Not authorized as admin' 
       });
     }
 
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      if (!decoded.email || decoded.email !== process.env.ADMIN_EMAIL) {
-        return res.status(403).json({
-          success: false,
-          message: "Not authorized as admin",
-        });
-      }
-
-      req.admin = decoded;
-      next();
-    } catch (jwtError) {
-      console.error("JWT verification error:", jwtError);
-      return res.status(401).json({
-        success: false,
-        message: "Invalid or expired token",
-      });
-    }
+    req.user = decoded;
+    next();
   } catch (error) {
-    console.error("Admin auth error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error during authentication",
+    console.error('JWT verification error:', error);
+    res.status(401).json({ 
+      success: false, 
+      message: 'Token verification failed' 
     });
   }
 };

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useAuth } from './AuthContext';
 
 const ShopContext = createContext();
 
@@ -37,18 +38,21 @@ const shopReducer = (state, action) => {
 
 export const ShopProvider = ({ children }) => {
   const [state, dispatch] = useReducer(shopReducer, initialState);
+  const { user } = useAuth();
 
-  // Load cart from localStorage on mount
+  const getCartKey = () => {
+    return user ? `cart_${user._id}` : 'cart_guest';
+  };
+
   useEffect(() => {
     try {
-      const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const savedCart = JSON.parse(localStorage.getItem(getCartKey()) || '[]');
       dispatch({ type: 'UPDATE_CART', payload: savedCart });
     } catch (error) {
       console.error('Error loading cart:', error);
     }
-  }, []);
+  }, [user]);
 
-  // Cart operations
   const addToCart = (product, size, quantity) => {
     try {
       const updatedCart = [...state.cart];
@@ -65,11 +69,12 @@ export const ShopProvider = ({ children }) => {
           price: product.price,
           image: Array.isArray(product.image) ? product.image[0] : product.image,
           size,
-          quantity
+          quantity,
+          userId: user?._id
         });
       }
 
-      localStorage.setItem('cart', JSON.stringify(updatedCart));
+      localStorage.setItem(getCartKey(), JSON.stringify(updatedCart));
       dispatch({ type: 'UPDATE_CART', payload: updatedCart });
       toast.success('Added to cart successfully!');
     } catch (error) {
@@ -83,7 +88,7 @@ export const ShopProvider = ({ children }) => {
       const updatedCart = state.cart.filter(
         item => !(item.productId === productId && item.size === size)
       );
-      localStorage.setItem('cart', JSON.stringify(updatedCart));
+      localStorage.setItem(getCartKey(), JSON.stringify(updatedCart));
       dispatch({ type: 'UPDATE_CART', payload: updatedCart });
       dispatchCartUpdateEvent();
       toast.success('Item removed from cart');
@@ -105,7 +110,7 @@ export const ShopProvider = ({ children }) => {
         }
         return item;
       });
-      localStorage.setItem('cart', JSON.stringify(updatedCart));
+      localStorage.setItem(getCartKey(), JSON.stringify(updatedCart));
       dispatch({ type: 'UPDATE_CART', payload: updatedCart });
       dispatchCartUpdateEvent();
     } catch (error) {
@@ -115,7 +120,7 @@ export const ShopProvider = ({ children }) => {
   };
 
   const clearCart = () => {
-    localStorage.removeItem('cart');
+    localStorage.removeItem(getCartKey());
     dispatch({ type: 'CLEAR_CART' });
   };
 

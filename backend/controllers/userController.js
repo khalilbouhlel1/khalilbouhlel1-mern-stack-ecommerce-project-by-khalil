@@ -2,6 +2,8 @@ import UserModel from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import validator from 'validator';
+import crypto from 'crypto';
 
 // Add these helper functions at the top of the file
 const isValidEmail = (email) => {
@@ -46,26 +48,33 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Generate JWT token - Updated to match the structure used in register
+    // Generate JWT token - Update the token structure
     const token = jwt.sign(
       {
         userId: user._id,
+        email: user.email,
+        name: user.name,
         isAdmin: user.isAdmin || false,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" } // Made consistent with register
+      { expiresIn: "24h" }
     );
 
-    // Updated response to exclude password
+    // Updated response structure
     res.status(200).json({
+      success: true,
       _id: user._id,
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin || false,
-      token,
+      token: `Bearer ${token}`
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message }); // Added error details
+    res.status(500).json({ 
+      success: false,
+      message: "Server error", 
+      error: error.message 
+    });
   }
 };
 
@@ -155,7 +164,8 @@ const adminLogin = async (req, res) => {
       const token = jwt.sign(
         {
           email: process.env.ADMIN_EMAIL,
-          role: "admin",
+          isAdmin: true,
+          role: "admin"
         },
         process.env.JWT_SECRET,
         { expiresIn: "24h" }
@@ -343,6 +353,187 @@ const getUserById = async (req, res) => {
     });
   }
 };
+
+// Helper function for token generation
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      userId: user._id,
+      email: user.email,
+      isAdmin: user.isAdmin || false,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+};
+
+// Add password reset functionality
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email || !validator.isEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    const user = await UserModel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this email'
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpire = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    // Send reset email logic here
+    // You can implement this using nodemailer
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset link sent to email'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process password reset request'
+    });
+  }
+};
+
+// Add reset password functionality
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields'
+      });
+    }
+
+    const user = await UserModel.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successful'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset password'
+    });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { name, email, currentPassword, newPassword } = req.body;
+
+    // Find user
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address"
+      });
+    }
+
+    // Check if email is taken by another user
+    const existingUser = await UserModel.findOne({
+      email,
+      _id: { $ne: userId }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is already in use"
+      });
+    }
+
+    // If changing password, verify current password
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is required to set new password"
+        });
+      }
+
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is incorrect"
+        });
+      }
+
+      // Hash new password
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+    }
+
+    // Update user information
+    user.name = name;
+    user.email = email;
+    await user.save();
+
+    // Return updated user without sensitive information
+    const updatedUser = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    };
+
+    res.status(200).json({
+      success: true,
+      message: "User profile updated successfully",
+      user: updatedUser
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update user profile",
+      error: error.message
+    });
+  }
+};
+
 export {
   loginUser,
   registerUser,
@@ -352,4 +543,7 @@ export {
   updateUser,
   getAllUsers,
   getUserById,
+  forgotPassword,
+  resetPassword,
+  updateProfile,
 };

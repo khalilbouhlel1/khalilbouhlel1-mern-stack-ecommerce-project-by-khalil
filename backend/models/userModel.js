@@ -14,6 +14,12 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
   cartdata: {
     type: Object,
     default: {}

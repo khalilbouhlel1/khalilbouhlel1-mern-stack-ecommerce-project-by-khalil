@@ -2,22 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 
 const Cart = () => {
   const { cart, totalAmount, removeFromCart, updateQuantity } = useShop();
+  const { user } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const userCart = user ? cart.filter(item => item.userId === user._id) : cart;
 
   const handleUpdateQuantity = async (index, newQuantity) => {
     try {
       setIsUpdating(true);
-      const item = cart[index];
+      const item = userCart[index];
       await updateQuantity(item.productId, item.size, newQuantity);
     } finally {
       setIsUpdating(false);
     }
   };
 
-  if (cart.length === 0) {
+  if (userCart.length === 0) {
     return (
       <div className="min-h-screen py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto text-center">
@@ -41,7 +45,7 @@ const Cart = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            {cart.map((item, index) => (
+            {userCart.map((item, index) => (
               <div key={`${item.productId}-${item.size}`} className="flex items-center p-4 mb-4 bg-white rounded-lg shadow">
                 <img
                   src={item.image}
